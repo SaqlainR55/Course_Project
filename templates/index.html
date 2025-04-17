@@ -1,0 +1,100 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf‑8">
+    <title>Audio Recorder</title>
+    <style>
+        ul { list-style: none; padding-left: 0; }
+        ul li { margin-bottom: 15px; }
+        ul li::before {
+            content: "\2022";
+            color: black;
+            display: inline-block; width: 1em;
+            margin-left: -1em;
+        }
+        .txt-link { display: block; margin-bottom: 5px; }
+        .sentiment-output {
+            background-color: #f9f9f9;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+<body>
+
+    <table style="width:100%; table-layout: fixed;">
+        <tr>
+            <td style="width:50%; vertical-align: top;">
+                <h2>Upload a PDF Book (from Project Gutenberg)</h2>
+                <form action="/upload_pdf" method="POST" enctype="multipart/form-data">
+                    <input type="file" name="pdf_file" accept=".pdf" required>
+                    <button type="submit">Upload Book</button>
+                </form>
+
+                {% if book_title %}
+                <p><strong>Current Book:</strong> {{ book_title }}</p>
+                {% endif %}
+                <hr>
+
+                <h2>Record and Upload Audio</h2>
+                <button id="record">Record</button>
+                <button id="stop">Stop</button>
+                <span id="timer">00:00</span>
+                <audio id="audio"></audio>
+                <form id="uploadForm" method="POST" enctype="multipart/form-data" action="/upload">
+                    <input type="hidden" name="audio_data" id="audioData">
+                </form>
+                <script src="/static/script.js"></script>
+
+                <hr>
+
+                <h2>Recorded Files</h2>
+                <ul>
+                    {% for file in files %}
+                      {% if file.endswith('.wav') and not file.endswith('_response.wav') %}
+                        <li>
+                          {% set resp_audio = file.replace('.wav','_response.wav') %}
+                          {% set resp_txt   = file + '.txt' %}
+                          {% set year  = file[0:4] %}
+                          {% set month = file[4:6] %}
+                          {% set day   = file[6:8] %}
+                          {% set hour  = file[9:11] %}
+                          {% set min   = file[11:13] %}
+                          {% set sec   = file[13:15] %}
+                          {% set ampm  = file[15:17] %}
+                          {% set ts    = month ~ "/" ~ day ~ "/" ~ year ~ "  " ~ hour ~ ":" ~ min ~ ":" ~ sec ~ " " ~ ampm %}
+
+                          <strong>User Recording:</strong><br>
+                          <audio controls>
+                            <source src="{{ url_for('uploaded_file', filename=file) }}" type="audio/wav">
+                            Your browser does not support the audio element.
+                          </audio><br>
+                          <small>Recorded on: {{ ts }}</small><br><br>
+
+                          {% if resp_audio in files %}
+                          <strong>GPT Response:</strong><br>
+                          <audio controls>
+                            <source src="{{ url_for('uploaded_file', filename=resp_audio) }}" type="audio/wav">
+                          </audio><br>
+                          {% endif %}
+
+                          {% if resp_txt in text_contents %}
+                            <a href="{{ url_for('uploaded_file', filename=resp_txt) }}">View Response Text</a>
+                          {% else %}
+                            <em>Generating response…</em>
+                          {% endif %}
+                        </li>
+                        <hr>
+                      {% endif %}
+                    {% endfor %}
+                </ul>
+            </td>
+        </tr>
+    </table>
+
+</body>
+</html>
